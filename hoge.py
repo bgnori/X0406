@@ -3,18 +3,22 @@
 import sys
 import re
 
+DEBUG = False
+
 x = re.compile("(?P<IsValuationAccountCode>\()?(?P<AccountCode>\d\d\d\d)\)?,(?P<rest>.+)")
 
 start_end = re.compile("\[(?P<start>\d\d\d\d)-(?P<end>\d\d\d\d)\]")
 
 
 class IDNode(object):
-    def __init__(self, code, title, start, end, note):
+    def __init__(self, code, title, isvaluation, start, end, note):
         self.children = []
         self.code = code
+        self.title = title
+        self.isvaluation = isvaluation
         self.start = start 
         self.end = end
-        self.title = title
+        self.note = note
 
     def add(self, node): 
         for c in self.children:
@@ -30,7 +34,7 @@ class IDNode(object):
         for c in self.children:
             c.visit(f, n+1)
 
-tree = IDNode(code=0, title="勘定科目", start=1, end=9999, note=None)
+tree = IDNode(code=0, title="勘定科目", isvaluation=False, start=1, end=9999, note=None)
 
 for line in sys.stdin.readlines():
     m = x.match(line)
@@ -39,34 +43,43 @@ for line in sys.stdin.readlines():
         assert(d['AccountCode'] is not None)
         start = None
         end = None
-        title = d['rest']
+        isvaluation = d['IsValuationAccountCode'] is not None
         code = int(d['AccountCode'])
-        for part in d["rest"].split(","):
-            m = start_end.match(part)
-            if m is not None:
-                d = m.groupdict()
-                start = int(d["start"])
-                end = int(d["end"])
-        print code, start, end
+        note = None
+        for i, part in enumerate(d["rest"].split(",")):
+            if i == 0:
+                title = part
+            else:
+                m = start_end.match(part)
+                if m is not None:
+                    d = m.groupdict()
+                    start = int(d["start"])
+                    end = int(d["end"])
+                else:
+                    note = part
+        if DEBUG:
+            print code, start, end
         
         if start is None:
             m = code
             r = 1000
             while r > 0:
                 n, m = divmod(m, r)
-                print n, m
+                if DEBUG:
+                    print n, m
                 if n == 0:
                     start = code + 1
                     end = code + r*10 -1
                     break
                 r = r / 10
-            print code, start, end, "default"
+            if DEBUG:
+                print code, start, end, "default"
 
-        tree.add(IDNode(code, title, start, end, None))
+        tree.add(IDNode(code, title, isvaluation, start, end, note))
 
 
 def foo(n, node):
-    print '  '*n, node.code, node.title
+    print '  '*n, node.code, node.title, node.isvaluation, node.note
 
 tree.visit(foo)
 
