@@ -2,6 +2,7 @@
 #-*- coding=utf-8 -*-
 import sys
 import re
+import json
 
 DEBUG = False
 
@@ -33,6 +34,27 @@ class IDNode(object):
         f(n, self)
         for c in self.children:
             c.visit(f, n+1)
+
+    def findByCode(self, code):
+        if self.code == code:
+            return self
+        for c in self.children:
+            if c.code == code:
+                return c
+            if c.start <= code and code <= c.end:
+                return c.findByCode(code)
+        return None
+
+    def findByTitle(self, title):
+        if self.title == title:
+            return self
+        for c in self.children:
+            found = c.findByTitle(title)
+            if found is not None:
+                return found
+        return None
+
+
 
 tree = IDNode(code=0, title="勘定科目", isvaluation=False, start=1, end=9999, note=None)
 
@@ -81,5 +103,10 @@ for line in sys.stdin.readlines():
 def foo(n, node):
     print '  '*n, node.code, node.title, node.isvaluation, node.note
 
-tree.visit(foo)
+#tree.visit(foo)
+
+print "find 0", tree.findByCode(0)
+print "find 8000", tree.findByCode(8000)
+print "find 8221", tree.findByCode(8221)
+print "find 仕入割引", tree.findByTitle("仕入割引")
 
