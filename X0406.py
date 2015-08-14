@@ -1,6 +1,5 @@
 #!/bin/python
 #-*- coding=utf-8 -*-
-import sys
 import re
 import json
 
@@ -55,58 +54,57 @@ class IDNode(object):
         return None
 
 
-
-tree = IDNode(code=0, title="勘定科目", isvaluation=False, start=1, end=9999, note=None)
-
-for line in sys.stdin.readlines():
-    m = x.match(line)
-    if m:
-        d = m.groupdict()
-        assert(d['AccountCode'] is not None)
-        start = None
-        end = None
-        isvaluation = d['IsValuationAccountCode'] is not None
-        code = int(d['AccountCode'])
-        note = None
-        for i, part in enumerate(d["rest"].split(",")):
-            if i == 0:
-                title = part
-            else:
-                m = start_end.match(part)
-                if m is not None:
-                    d = m.groupdict()
-                    start = int(d["start"])
-                    end = int(d["end"])
+def load(f):
+    tree = IDNode(code=0, title="勘定科目", isvaluation=False, start=1, end=9999, note=None)
+    for line in f:
+        m = x.match(line)
+        if m:
+            d = m.groupdict()
+            assert(d['AccountCode'] is not None)
+            start = None
+            end = None
+            isvaluation = d['IsValuationAccountCode'] is not None
+            code = int(d['AccountCode'])
+            note = None
+            for i, part in enumerate(d["rest"].split(",")):
+                if i == 0:
+                    title = part
                 else:
-                    note = part
-        if DEBUG:
-            print code, start, end
-        
-        if start is None:
-            m = code
-            r = 1000
-            while r > 0:
-                n, m = divmod(m, r)
-                if DEBUG:
-                    print n, m
-                if n == 0:
-                    start = code + 1
-                    end = code + r*10 -1
-                    break
-                r = r / 10
+                    m = start_end.match(part)
+                    if m is not None:
+                        d = m.groupdict()
+                        start = int(d["start"])
+                        end = int(d["end"])
+                    else:
+                        note = part
             if DEBUG:
-                print code, start, end, "default"
+                print code, start, end
+            
+            if start is None:
+                m = code
+                r = 1000
+                while r > 0:
+                    n, m = divmod(m, r)
+                    if DEBUG:
+                        print n, m
+                    if n == 0:
+                        start = code + 1
+                        end = code + r*10 -1
+                        break
+                    r = r / 10
+                if DEBUG:
+                    print code, start, end, "default"
 
-        tree.add(IDNode(code, title, isvaluation, start, end, note))
+            tree.add(IDNode(code, title, isvaluation, start, end, note))
+    return tree
 
 
-def foo(n, node):
-    print '  '*n, node.code, node.title, node.isvaluation, node.note
+if __name__ == "__main__":
+    import sys
+    tree = load(sys.stdin.readlines())
+    def foo(n, node):
+        print '  '*n, node.code, node.title, node.isvaluation, node.note
+    tree.visit(foo)
 
-#tree.visit(foo)
 
-print "find 0", tree.findByCode(0)
-print "find 8000", tree.findByCode(8000)
-print "find 8221", tree.findByCode(8221)
-print "find 仕入割引", tree.findByTitle("仕入割引")
 
