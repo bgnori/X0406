@@ -9,8 +9,21 @@ def loadfromjson(j):
 
 
 class Journal(object):
-    pass
+    def __init__(self):
+        self.entries = []
+    def append(self, e):
+        self.entries.append(e)
 
-
+    def getTAccount(self, title):
+        dr = {}
+        cr = {}
+        for e in self.entries:
+            for t, v  in e["debit"].items():
+                if t == title:
+                    dr[e['date']] = v
+            for t, v  in e["credit"].items():
+                if t == title:
+                    cr[e['date']] = v
+        return dr, cr
 
 
